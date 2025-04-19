@@ -1,3 +1,5 @@
+use meval::eval_str;
+
 #[tauri::command]
 fn greet(name: &str) -> Result<String, String> {
     parse_and_calculate(name)
@@ -15,59 +17,14 @@ pub fn run() {
 }
 
 fn parse_and_calculate(input: &str) -> Result<f64, String> {
-    let input = input.trim().replace(" ", "");
-
-    // Simple parser for basic arithmetic
-    let mut result = 0.0;
-    let mut current_num = String::new();
-    let mut current_op = '+';
-
-    for c in input.chars() {
-        if c.is_digit(10) || c == '.' {
-            current_num.push(c);
-        } else if c == '+' || c == '-' || c == '*' || c == '/' {
-            let num = current_num.parse::<f64>()
-                .map_err(|_| format!("Invalid number: {}", current_num))?;
-
-            // Apply previous operation
-            match current_op {
-                '+' => result += num,
-                '-' => result -= num,
-                '*' => result *= num,
-                '/' => {
-                    if num == 0.0 {
-                        return Err("Division by zero".to_string());
-                    }
-                    result /= num;
-                },
-                _ => return Err(format!("Unknown operator: {}", current_op)),
-            }
-
-            current_num = String::new();
-            current_op = c;
-        } else {
-            return Err(format!("Invalid character in expression: {}", c));
-        }
+    // Trim whitespace
+    let input = input.trim();
+    
+    // Handle empty input
+    if input.is_empty() {
+        return Ok(0.0);
     }
-
-    // Process the last number
-    if !current_num.is_empty() {
-        let num = current_num.parse::<f64>()
-            .map_err(|_| format!("Invalid number: {}", current_num))?;
-
-        match current_op {
-            '+' => result += num,
-            '-' => result -= num,
-            '*' => result *= num,
-            '/' => {
-                if num == 0.0 {
-                    return Err("Division by zero".to_string());
-                }
-                result /= num;
-            },
-            _ => return Err(format!("Unknown operator: {}", current_op)),
-        }
-    }
-
-    Ok(result)
+    
+    // Use meval to parse and evaluate the expression
+    eval_str(input).map_err(|err| err.to_string())
 }
